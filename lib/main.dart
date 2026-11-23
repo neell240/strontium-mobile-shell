@@ -6,6 +6,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:scaled_app/scaled_app.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:strontianite/handlers/alarms_handler.dart';
+import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:strontianite/handlers/audio_handler.dart';
 import 'package:strontianite/handlers/wallpapers_handler.dart';
 import 'package:strontianite/utils/ytm_utils.dart';
@@ -43,7 +44,7 @@ void main() async {
       androidNotificationOngoing: true,
     ),
   );
-
+  await AndroidAlarmManager.initialize();
   AlarmsHandler.init();
   WallpapersHandler.init();
 

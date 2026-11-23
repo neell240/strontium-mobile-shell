@@ -61,7 +61,7 @@ class AlarmsHandler {
 
     final intId = _uuidToInt(alarm.id);
 
-    await AndroidAlarmManager.oneShotAt(
+    final scheduled = await AndroidAlarmManager.oneShotAt(
       target,
       intId,
       _androidRing,
@@ -71,6 +71,10 @@ class AlarmsHandler {
       rescheduleOnReboot: true,
       allowWhileIdle: true,
     );
+
+    if (!scheduled) {
+      throw StateError('Android could not schedule the alarm');
+    }
 
     return intId;
   }

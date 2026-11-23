@@ -1,3 +1,5 @@
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
@@ -78,14 +80,40 @@ class _AlarmEditorState extends ConsumerState<AlarmEditor> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
+        onPressed: () async {
           final updated = widget.alarm.copyWith(
             time: _time,
             name: _name,
             repeat: _repeat,
           );
-          ref.read(alarmsProvider.notifier).updateAlarm(updated);
-          Navigator.of(context).pop();
+
+          try {
+            if (Platform.isAndroid) {
+              var permission = await Permission.scheduleExactAlarm.status;
+
+              if (!permission.isGranted) {
+                permission = await Permission.scheduleExactAlarm.request();
+              }
+
+              if (!permission.isGranted) {
+                throw StateError(
+                  'Enable Alarms & reminders for Strontianite '
+                  'in Android Settings, then try saving again.',
+                );
+              }
+            }
+
+            await ref.read(alarmsProvider.notifier).updateAlarm(updated);
+            if (!mounted) return;
+            Navigator.of(context).pop();
+          } catch (e) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Could not save alarm: $e'),
+              ),
+            );
+          }
         },
         child: const Icon(M3EIcons.check_rounded),
       ),
