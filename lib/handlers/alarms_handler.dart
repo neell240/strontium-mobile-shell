@@ -131,6 +131,15 @@ class AlarmsHandler {
     }
   }
 
+  // Audio playback for alarms scheduled in the Linux UI process.
+  static Future<void> _ring(String id) async {
+    debugPrint('Alarm ringing: $id');
+    await _alarmPlayer.setAsset('assets/audio/argon.ogg');
+    await _alarmPlayer.setLoopMode(LoopMode.one);
+    unawaited(_alarmPlayer.play());
+    IsolateNameServer.lookupPortByName(_portName)?.send(id);
+  }
+
   static int _uuidToInt(String uuid) {
     final bytes = utf8.encode(uuid);
     int hash = 0;
