@@ -46,28 +46,31 @@ class ClockPane extends ConsumerWidget {
                   fit: BoxFit.cover,
                 ),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
+        child: Stack(
+          fit: StackFit.expand,
           children: [
-            if (displayBatteryIndicator)
-              Padding(
+            Center(
+              child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: SizedBox(
-                    width: 32,
-                    height: 16,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [const BatteryIndicator()],
-                    ),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Clock(
+                    clockType: clockType,
+                    themeData: themeData,
                   ),
                 ),
               ),
-            Expanded(
-              child: Clock(clockType: clockType, themeData: themeData),
             ),
+            if (displayBatteryIndicator)
+              const Positioned(
+                top: 16,
+                right: 16,
+                child: SizedBox(
+                  width: 32,
+                  height: 16,
+                  child: BatteryIndicator(),
+                ),
+              ),
           ],
         ),
       ),

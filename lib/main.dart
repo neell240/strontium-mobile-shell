@@ -1,4 +1,5 @@
 import 'package:audio_service/audio_service.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio_media_kit/just_audio_media_kit.dart';
 import 'package:material_ui/material_ui.dart';
@@ -26,6 +27,10 @@ void main() async {
       const double scale = 600;
       return size.width / scale;
     },
+  );
+
+  await SystemChrome.setEnabledSystemUIMode(
+    SystemUiMode.edgeToEdge,
   );
 
   final prefs = await SharedPreferences.getInstance();
@@ -71,7 +76,11 @@ class _MainAppState extends State<MainApp> {
       autoTheming: true,
       dynamicColoring: true,
       drawUnderSystemBars: true,
-      home: SafeArea(child: Scaffold(body: Desktop())),
+      home: SafeArea(
+        top: false,
+        bottom: false,
+        child: Scaffold(body: Desktop()),
+      ),
     );
   }
 
