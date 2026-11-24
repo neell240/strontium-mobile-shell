@@ -72,11 +72,7 @@ class Panel extends StatelessWidget {
               name: 'Market',
               icon: M3EIcons.shop_rounded,
               exec: () {
-                if (Platform.isLinux) {
-                  switchPane(5);
-                } else if (Platform.isAndroid) {
-                  InstalledApps.startApp('com.android.vending');
-                }
+                switchPane(5);
               },
             ),
             AppIcon(

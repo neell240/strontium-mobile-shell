@@ -131,9 +131,9 @@ class _YtmPaneState extends State<YtmPane> with AutomaticKeepAliveClientMixin {
                           subtitle: Text(
                             c?.author ?? 'Author 1, Author 2 & Author 3',
                           ),
-                          onTap: () {
+                          onTap: () async {
                             if (c == null) return;
-                            YtmUtils.play(
+                            final started = await YtmUtils.play(
                               c.id.toString(),
                               _nowPlaying.playTrigger,
                               (isLoading) {
@@ -144,6 +144,13 @@ class _YtmPaneState extends State<YtmPane> with AutomaticKeepAliveClientMixin {
                                 }
                               },
                             );
+                            if (!started && mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text(
+                                  'Could not play this stream. It may be unavailable or require updated YouTube support.',
+                                )),
+                              );
+                            }
                           },
                         );
                       },

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
@@ -80,7 +81,6 @@ class YtmUtils {
       _title = title;
       _artist = artist;
       _thumbnail = artUri;
-      _related = await _getRelated(id);
 
       final audioStream =
           streams.getAudioOnly(subtype: 'mp4') ?? streams.bestAudio;
@@ -89,13 +89,11 @@ class YtmUtils {
         debugPrint('UR:: $playableUrl');
         await player.setUrl(
           playableUrl,
-          headers: {
-            'Cookie': cookie,
-            'User-Agent':
-                'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36',
-          },
+          headers: cookie.isEmpty ? null : {'Cookie': cookie},
         );
-        player.play();
+        unawaited(player.play().catchError((Object error) {
+          debugPrint('Music playback error: $error');
+        }));
         audioHandler.updateMetadata(
           title: title,
           artist: artist,
@@ -108,6 +106,8 @@ class YtmUtils {
           artist: artist,
           thumbnail: artUri,
         );
+        // Recommendations are optional; a failure must never block playback.
+        unawaited(_loadRelated(id));
         if (addToHistory) {
           if (_index < _history.length - 1) {
             _history.removeRange(_index + 1, _history.length);
@@ -180,6 +180,15 @@ class YtmUtils {
         next();
       }
     });
+  }
+
+  static Future<void> _loadRelated(String id) async {
+    try {
+      final related = await _getRelated(id);
+      if (_id == id) _related = related;
+    } catch (e) {
+      debugPrint('Related tracks unavailable: $e');
+    }
   }
 
   static Future<String?> _getRelated(String id) async {

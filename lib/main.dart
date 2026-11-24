@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,7 +37,7 @@ void main() async {
 
   final prefs = await SharedPreferences.getInstance();
 
-  JustAudioMediaKit.ensureInitialized();
+  if (Platform.isLinux) JustAudioMediaKit.ensureInitialized();
 
   container = ProviderContainer(
     overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],

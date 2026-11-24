@@ -7,6 +7,8 @@ import 'dart:ui';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:cron/cron.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:strontianite/main.dart';
 import 'package:strontianite/models/alarm_model.dart';
@@ -55,7 +57,7 @@ class AlarmsHandler {
       alarm.time.hour,
       alarm.time.minute,
     );
-    if (target.isBefore(now)) {
+    if (!target.isAfter(now)) {
       target = target.add(const Duration(days: 1));
     }
 
@@ -88,22 +90,45 @@ class AlarmsHandler {
 
   @pragma('vm:entry-point')
   static Future<void> _androidRing(int id, Map<String, dynamic> params) async {
-    final alarm = container
-        .read(alarmsProvider.notifier)
-        .getAlarm(params['id']);
-    await _ring(params['id']);
-    if (alarm.repeat) {
-      await _androidScheduleNextDaily(alarm);
-    }
-  }
+    // AlarmManager launches a separate Dart isolate: do not use the UI's
+    // global ProviderContainer or its AudioPlayer instance here.
+    WidgetsFlutterBinding.ensureInitialized();
+    DartPluginRegistrant.ensureInitialized();
+    final alarmId = params['id'] as String?;
+    if (alarmId == null) return;
 
-  @pragma('vm:entry-point')
-  static Future<void> _ring(String id) async {
-    debugPrint('Alarm ringing');
-    await _alarmPlayer.setAsset('assets/audio/argon.ogg');
-    await _alarmPlayer.setLoopMode(LoopMode.one);
-    _alarmPlayer.play();
-    IsolateNameServer.lookupPortByName(_portName)?.send(id);
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getStringList('alarms') ?? <String>[];
+    AlarmModel? alarm;
+    for (final encoded in saved) {
+      final value = AlarmModel.fromJson(jsonDecode(encoded));
+      if (value.id == alarmId) {
+        alarm = value;
+        break;
+      }
+    }
+    if (alarm == null) return; // It was deleted before the callback ran.
+
+    // A fresh player is required in the background isolate.
+    final player = AudioPlayer();
+    try {
+      await player.setAsset('assets/audio/argon.ogg');
+      await player.setLoopMode(LoopMode.one);
+      // play() can remain pending while audio is playing; do not await it.
+      unawaited(player.play());
+      IsolateNameServer.lookupPortByName(_portName)?.send(alarmId);
+
+      if (alarm.repeat) {
+        await _androidScheduleNextDaily(alarm);
+      }
+      // Keep the background isolate alive briefly while ringing. Native
+      // alarm notifications/foreground audio are still needed for reliability.
+      await Future<void>.delayed(const Duration(seconds: 30));
+    } catch (e) {
+      debugPrint('Background alarm failed: $e');
+    } finally {
+      await player.dispose();
+    }
   }
 
   static int _uuidToInt(String uuid) {
