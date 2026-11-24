@@ -14,6 +14,7 @@ import 'package:strontianite/handlers/audio_handler.dart';
 import 'package:strontianite/handlers/wallpapers_handler.dart';
 import 'package:strontianite/utils/ytm_utils.dart';
 import 'package:strontianite/views/desktop.dart';
+import 'package:strontianite/utils/ambient_settings.dart';
 
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
   throw UnimplementedError();
@@ -36,6 +37,7 @@ void main() async {
   );
 
   final prefs = await SharedPreferences.getInstance();
+  await AmbientSettings.load();
 
   if (Platform.isLinux) JustAudioMediaKit.ensureInitialized();
 

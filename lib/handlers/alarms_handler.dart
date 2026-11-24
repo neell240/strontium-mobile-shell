@@ -158,6 +158,15 @@ class AlarmsHandler {
     }
   }
 
+  /// UI-only diagnostic: does not test background scheduling.
+  static Future<void> testAlarmSound() async {
+    await _alarmPlayer.setAsset('assets/audio/argon.ogg');
+    await _alarmPlayer.setLoopMode(LoopMode.one);
+    unawaited(_alarmPlayer.play());
+    await Future<void>.delayed(const Duration(seconds: 3));
+    await _alarmPlayer.stop();
+  }
+
   static Future<void> dismiss() async {
     await _alarmPlayer.stop();
   }

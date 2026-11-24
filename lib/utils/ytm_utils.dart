@@ -271,22 +271,26 @@ class YtmUtils {
   }
 
   static Future<LyricsModel?> fetchLyrics() async {
-    debugPrint('Fetching lyrics for: $_id');
-    final uri = Uri.parse('https://api-lyrics.simpmusic.org/v1/$_id');
-    final response = await _lyricsClient.get(uri);
-    final json = jsonDecode(response.body);
-    if (json['success'] == true) {
-      final list = json['data'] as List;
-      if (list.isEmpty) return null;
-
-      final data = list.first as Map<String, dynamic>;
-      final plainLyric = data['plainLyric'];
-      final syncedLyrics = data['syncedLyrics'];
-      if (syncedLyrics != null) {
-        return LyricsModel(lyrics: syncedLyrics, isSynced: true);
-      } else {
-        return LyricsModel(lyrics: plainLyric, isSynced: false);
+    if (_id.isEmpty) return null;
+    try {
+      final uri = Uri.parse('https://api-lyrics.simpmusic.org/v1/$_id');
+      final response = await _lyricsClient.get(uri).timeout(const Duration(seconds: 12));
+      if (response.statusCode != 200) return null;
+      final json = jsonDecode(response.body);
+      if (json is! Map || json['success'] != true) return null;
+      final items = json['data'];
+      if (items is! List || items.isEmpty || items.first is! Map) return null;
+      final data = items.first as Map;
+      final synced = data['syncedLyrics'];
+      final plain = data['plainLyric'];
+      if (synced is String && synced.trim().isNotEmpty) {
+        return LyricsModel(lyrics: synced, isSynced: true);
       }
+      if (plain is String && plain.trim().isNotEmpty) {
+        return LyricsModel(lyrics: plain, isSynced: false);
+      }
+    } catch (e) {
+      debugPrint('Lyrics currently unavailable: $e');
     }
     return null;
   }

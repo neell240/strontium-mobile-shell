@@ -54,7 +54,7 @@ class _NowPlayingState extends State<NowPlaying> {
       final duration = YtmUtils.getDuration();
 
       if (!_isSeeking) {
-        _sliderValue.value = position.inMilliseconds / duration.inMilliseconds;
+        _sliderValue.value = (duration.inMilliseconds <= 0 ? 0.0 : position.inMilliseconds / duration.inMilliseconds);
       }
 
       _isPlaying.value = YtmUtils.isPlaying();
@@ -74,6 +74,7 @@ class _NowPlayingState extends State<NowPlaying> {
     widget.loadTrigger.addListener(() async {
       if (widget.loadTrigger.value == false) {
         final model = await YtmUtils.fetchLyrics();
+        if (!mounted) return;
         _lyricsModel.value = model;
         _syncedLyrics = (model != null && model.isSynced)
             ? YtmUtils.parseSyncedLyrics(model)
@@ -249,7 +250,7 @@ class _NowPlayingState extends State<NowPlaying> {
                                     width: double.infinity,
                                     child: (_syncedLyrics == null)
                                         ? Text(
-                                            lyrics?.lyrics ?? 'No lyrics data',
+                                            lyrics?.lyrics ?? 'Lyrics unavailable from the current provider',
                                           )
                                         : LayoutBuilder(
                                             builder: (context, constraints) {

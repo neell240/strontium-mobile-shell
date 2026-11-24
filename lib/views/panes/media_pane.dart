@@ -20,8 +20,8 @@ class MediaPane extends StatefulWidget {
 class _MediaPaneState extends State<MediaPane> {
   MediaInfo? _mediaInfo;
   bool _isPlaying = false;
-  late StreamSubscription<PlayerState> _linuxStreamSubscription;
-  late StreamSubscription<fmc.MediaInfo> _androidStreamSubscription;
+  StreamSubscription<PlayerState>? _linuxStreamSubscription;
+  StreamSubscription<fmc.MediaInfo>? _androidStreamSubscription;
   int _anchorPosition = 0;
   int _volume = 100;
   final Stopwatch _posStopwatch = Stopwatch();
@@ -57,6 +57,7 @@ class _MediaPaneState extends State<MediaPane> {
     _reanchor(_mediaInfo?.position ?? 0);
     _volume = MediaUtils.getVolume();
 
+    if (Platform.isLinux) {
     _linuxStreamSubscription = MediaUtils.getStateStream().listen((state) {
       if (mounted) {
         setState(() {
@@ -90,6 +91,8 @@ class _MediaPaneState extends State<MediaPane> {
       }
     });
 
+    }
+    if (Platform.isAndroid) {
     _androidStreamSubscription = MediaUtils.getMediaInfoAndroidStream().listen((
       info,
     ) {
@@ -115,6 +118,7 @@ class _MediaPaneState extends State<MediaPane> {
       }
     });
 
+    }
     _timer = Timer.periodic(const Duration(milliseconds: 200), (_) {
       if (_isPlaying && mounted) {
         setState(() {});
@@ -218,8 +222,8 @@ class _MediaPaneState extends State<MediaPane> {
 
   @override
   void dispose() {
-    _linuxStreamSubscription.cancel();
-    _androidStreamSubscription.cancel();
+    _linuxStreamSubscription?.cancel();
+    _androidStreamSubscription?.cancel();
     _timer.cancel();
     super.dispose();
   }
