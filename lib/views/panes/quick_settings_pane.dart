@@ -17,6 +17,20 @@ class QuickSettingsPane extends StatefulWidget {
 class _QuickSettingsPaneState extends State<QuickSettingsPane> {
   static const _system = MethodChannel('strontium.mobile/system');
 
+  bool _immersive = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Platform.isAndroid) {
+      _system.invokeMethod<bool>('getImmersiveMode').then((value) {
+        if (mounted) setState(() => _immersive = value ?? false);
+      }).catchError((Object error) {
+        // An older APK may not expose the native method yet.
+      });
+    }
+  }
+
   void _feedback(String text) {
     if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
@@ -43,6 +57,46 @@ class _QuickSettingsPaneState extends State<QuickSettingsPane> {
             MaterialPageRoute(builder: (_) => const YtmSettings())),
         ),
         if (Platform.isAndroid) ...[
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.home_outlined),
+            title: const Text('Set Strontianite as Home'),
+            subtitle: const Text('Choose Strontianite as your default Android launcher'),
+            onTap: () async {
+              try { await _system.invokeMethod<bool>('requestHomeRole'); }
+              catch (e) { _feedback('Could not open Home selection: $e'); }
+            },
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.swipe_outlined),
+            title: const Text('Immersive fullscreen'),
+            subtitle: const Text('Off: use Android system Back, Home and Recents. On: hide system bars; gestures may be harder to access.'),
+            value: _immersive,
+            onChanged: (enabled) async {
+              try {
+                await _system.invokeMethod<void>('setImmersiveMode', {'enabled': enabled});
+                if (mounted) setState(() => _immersive = enabled);
+              } catch (e) { _feedback('Navigation setting failed: $e'); }
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.settings_overscan_outlined),
+            title: const Text('Android navigation settings'),
+            subtitle: const Text('Choose system gesture navigation or 3-button navigation in Android settings'),
+            onTap: () async {
+              try { await _system.invokeMethod<void>('openNavigationSettings'); }
+              catch (e) { _feedback('Could not open navigation settings: $e'); }
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.bluetooth_audio_outlined),
+            title: const Text('Bluetooth audio devices'),
+            subtitle: const Text('Pair headphones or a speaker; Android chooses the audio route'),
+            onTap: () async {
+              try { await _system.invokeMethod<void>('openBluetoothSettings'); }
+              catch (e) { _feedback('Could not open Bluetooth settings: $e'); }
+            },
+          ),
           const Divider(),
           const ListTile(
             leading: Icon(Icons.nights_stay_outlined),
@@ -78,6 +132,16 @@ class _QuickSettingsPaneState extends State<QuickSettingsPane> {
                 items: const [1, 2, 5, 10].map((n) => DropdownMenuItem(value: n, child: Text('$n min'))).toList(),
                 onChanged: (value) { if (value != null) AmbientSettings.setIdleMinutes(value); },
               ),
+            ),
+          ),
+          ValueListenableBuilder<bool>(
+            valueListenable: AmbientSettings.standbyWidgets,
+            builder: (_, enabled, __) => SwitchListTile(
+              secondary: const Icon(Icons.widgets_outlined),
+              title: const Text('Strontium Standby widgets'),
+              subtitle: const Text('Show clock, music, and next alarm while idle. Turn off for the classic ambient clock.'),
+              value: enabled,
+              onChanged: (value) => AmbientSettings.setStandbyWidgets(value),
             ),
           ),
           const Divider(),

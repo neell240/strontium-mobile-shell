@@ -6,6 +6,8 @@ import android.content.Intent
 import android.provider.Settings
 import android.view.WindowManager
 import android.provider.AlarmClock
+import android.app.role.RoleManager
+import android.content.Context
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import android.view.View
@@ -20,6 +22,50 @@ class MainActivity : AudioServiceActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "strontium.mobile/system")
             .setMethodCallHandler { call, result ->
                 when (call.method) {
+                    "requestHomeRole" -> {
+                        try {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                val roles = getSystemService(Context.ROLE_SERVICE) as RoleManager
+                                if (roles.isRoleAvailable(RoleManager.ROLE_HOME) &&
+                                    !roles.isRoleHeld(RoleManager.ROLE_HOME)) {
+                                    startActivity(roles.createRequestRoleIntent(RoleManager.ROLE_HOME))
+                                } else {
+                                    startActivity(Intent(Settings.ACTION_HOME_SETTINGS))
+                                }
+                            } else {
+                                startActivity(Intent(Settings.ACTION_HOME_SETTINGS))
+                            }
+                            result.success(true)
+                        } catch (e: Exception) {
+                            result.error("HOME_ROLE_UNAVAILABLE", e.message, null)
+                        }
+                    }
+                    "setImmersiveMode" -> {
+                        val enabled = call.argument<Boolean>("enabled") ?: false
+                        getSharedPreferences("strontium_mobile", Context.MODE_PRIVATE)
+                            .edit().putBoolean("immersive_mode", enabled).apply()
+                        applyNavigationMode()
+                        result.success(null)
+                    }
+                    "getImmersiveMode" -> {
+                        result.success(isImmersiveMode())
+                    }
+                    "openNavigationSettings" -> {
+                        try {
+                            startActivity(Intent(Settings.ACTION_SETTINGS))
+                            result.success(null)
+                        } catch (e: Exception) {
+                            result.error("NAV_SETTINGS_UNAVAILABLE", e.message, null)
+                        }
+                    }
+                    "openBluetoothSettings" -> {
+                        try {
+                            startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
+                            result.success(null)
+                        } catch (e: Exception) {
+                            result.error("BLUETOOTH_UNAVAILABLE", e.message, null)
+                        }
+                    }
                     "openSettings" -> {
                         startActivity(Intent(Settings.ACTION_SETTINGS))
                         result.success(null)
@@ -59,12 +105,28 @@ class MainActivity : AudioServiceActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        hideSystemBars()
+        applyNavigationMode()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) hideSystemBars()
+        if (hasFocus) applyNavigationMode()
+    }
+
+    private fun isImmersiveMode(): Boolean = getSharedPreferences(
+        "strontium_mobile", Context.MODE_PRIVATE
+    ).getBoolean("immersive_mode", false)
+
+    @Suppress("DEPRECATION")
+    private fun applyNavigationMode() {
+        if (isImmersiveMode()) {
+            hideSystemBars()
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.setDecorFitsSystemWindows(true)
+            window.insetsController?.show(WindowInsets.Type.systemBars())
+        } else {
+            window.decorView.systemUiVisibility = 0
+        }
     }
 
     @Suppress("DEPRECATION")

@@ -10,12 +10,14 @@ class AmbientSettings {
   static final keepAwake = ValueNotifier<bool>(false);
   static final ambientEnabled = ValueNotifier<bool>(false);
   static final idleMinutes = ValueNotifier<int>(2);
+  static final standbyWidgets = ValueNotifier<bool>(true);
 
   static Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
     keepAwake.value = prefs.getBool('b8_keep_awake') ?? false;
     ambientEnabled.value = prefs.getBool('b8_ambient') ?? false;
     idleMinutes.value = prefs.getInt('b8_idle_minutes') ?? 2;
+    standbyWidgets.value = prefs.getBool('b9_standby_widgets') ?? true;
     await syncKeepAwake();
   }
 
@@ -38,6 +40,12 @@ class AmbientSettings {
     ambientEnabled.value = value;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('b8_ambient', value);
+  }
+
+  static Future<void> setStandbyWidgets(bool enabled) async {
+    standbyWidgets.value = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('b9_standby_widgets', enabled);
   }
 
   static Future<void> setIdleMinutes(int minutes) async {

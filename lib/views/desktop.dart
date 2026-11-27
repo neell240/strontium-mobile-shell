@@ -7,6 +7,7 @@ import 'package:strontianite/providers/alarms_provider.dart';
 import 'package:strontianite/views/alarm_ringing.dart';
 import 'package:strontianite/views/panel.dart';
 import 'package:strontianite/utils/ambient_settings.dart';
+import 'package:strontianite/views/strontium_standby.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:strontianite/views/clock.dart';
 import 'package:strontianite/providers/clock_type_provider.dart';
@@ -98,34 +99,53 @@ class _DesktopState extends State<Desktop> {
         ),
       ],
     ),
-    if (_ambient)
-      Positioned.fill(
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: _markInteraction,
-          child: Container(
-            color: const Color(0xFF000000),
-            alignment: Alignment.center,
-            child: Transform.translate(
-              offset: Offset((_ambientShift - 2) * 6.0, (_ambientShift - 2) * 4.0),
-              child: FractionallySizedBox(
-                widthFactor: 0.7,
-                heightFactor: 0.7,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Theme(
-                    data: ThemeData.dark().copyWith(
-                      colorScheme: const ColorScheme.dark(primary: Color(0xFF999999), onSurface: Color(0xFF999999)),
-                    ),
-                    child: Consumer(builder: (context, ref, _) =>
-                      Clock(clockType: ref.watch(clockTypeProvider))),
-                  ),
-                ),
+    Positioned.fill(
+      child: IgnorePointer(
+        ignoring: !_ambient,
+        child: AnimatedOpacity(
+          opacity: _ambient ? 1 : 0,
+          duration: const Duration(milliseconds: 520),
+          curve: Curves.easeInOutCubic,
+          child: AnimatedScale(
+            scale: _ambient ? 1 : 1.035,
+            duration: const Duration(milliseconds: 520),
+            curve: Curves.easeInOutCubic,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _markInteraction,
+              child: ValueListenableBuilder<bool>(
+                valueListenable: AmbientSettings.standbyWidgets,
+                builder: (_, enabled, __) => enabled
+                    ? const StrontiumStandby()
+                    : Container(
+                        color: Colors.black,
+                        alignment: Alignment.center,
+                        child: Transform.translate(
+                          offset: Offset((_ambientShift - 2) * 6.0, (_ambientShift - 2) * 4.0),
+                          child: FractionallySizedBox(
+                            widthFactor: 0.7,
+                            heightFactor: 0.7,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Theme(
+                                data: ThemeData.dark().copyWith(
+                                  colorScheme: const ColorScheme.dark(
+                                    primary: Color(0xFF999999),
+                                    onSurface: Color(0xFF999999)),
+                                ),
+                                child: Consumer(builder: (context, ref, _) =>
+                                  Clock(clockType: ref.watch(clockTypeProvider))),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
               ),
             ),
           ),
         ),
       ),
+    ),
       ]),
     );
   }
